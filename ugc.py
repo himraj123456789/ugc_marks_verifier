@@ -10,13 +10,12 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 # ---------------- FIREBASE INIT ----------------
-if not firebase_admin._apps:
-    key_dict = json.loads(st.secrets["FIREBASE_KEY"])
-    cred = credentials.Certificate(key_dict)
-    firebase_admin.initialize_app(
-        cred,
-        {"databaseURL": "https://ugc-net-marks-f2f20-default-rtdb.firebaseio.com/"}
-    )
+
+# --------------------------
+# Firebase config (your values)
+# --------------------------
+SERVICE_ACCOUNT_PATH = "cv.json"   # your service account JSON
+DATABASE_URL = "https://bloodbanknew-e4e64-default-rtdb.firebaseio.com/"  # your DB URL
 
 # ---------------- CONFIG ----------------
 PAPER1_COUNT = 50
@@ -192,3 +191,4 @@ if st.button("Get Marks"):
             "ugc_net_result.csv",
             "text/csv"
         )
+
