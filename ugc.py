@@ -183,7 +183,7 @@ with col2:
 stats = get_marks_statistics()
 if stats:
     st.markdown(f"""
-    <div style="display:flex;justify-content:space-around;background:#f4f6f7;padding:15px;border-radius:10px;text-align:center">
+    <div style="display:flex;justify-content:space-around;padding:15px;border-radius:10px;text-align:center">
     <div>🏆<br><b>Highest</b><br>{stats['highest']}</div>
     <div>📊<br><b>Average</b><br>{stats['average']}</div>
     <div>📌<br><b>Median</b><br>{stats['median']}</div>
@@ -222,3 +222,4 @@ if st.button("Get Marks"):
     st.download_button("⬇️ Download CSV",
         df.to_csv(index=False).encode("utf-8"),
         "ugc_net_result.csv","text/csv")
+
