@@ -36,13 +36,10 @@ def encode_url(url):
 def save_to_firebase(url, name, roll, application, total_marks):
     if total_marks <= 2:
         return False
-
     key = encode_url(url)
     ref = db.reference(f"results/{key}")
-
     if ref.get() is not None:
         return False
-
     ref.set({
         "candidate_name": name,
         "roll_no": roll,
@@ -58,11 +55,7 @@ def get_marks_statistics():
     data = ref.get()
     if not data:
         return None
-
-    marks = [v["total_marks"] for v in data.values() if "total_marks" in v]
-    if not marks:
-        return None
-
+    marks = [v["total_marks"] for v in data.values()]
     s = pd.Series(marks)
     return {
         "highest": int(s.max()),
@@ -76,36 +69,30 @@ def get_all_marks():
     data = ref.get()
     if not data:
         return []
-    return [v["total_marks"] for v in data.values() if "total_marks" in v]
+    return [v["total_marks"] for v in data.values()]
 
 # ---------------- FREQUENCY DISTRIBUTION ----------------
 def marks_frequency_distribution(marks, start=60, end=300, bin_size=10):
     bins = list(range(start, end + bin_size, bin_size))
     labels = [f"{b}-{b+bin_size-1}" for b in bins[:-1]]
     freq = [0] * len(labels)
-
     for m in marks:
         if start <= m <= end:
             idx = (m - start) // bin_size
             if idx < len(freq):
                 freq[idx] += 1
-
     return labels, freq
 
 def plot_frequency_graph(labels, freq):
     fig = go.Figure(
-        data=[go.Bar(
-            x=labels,
-            y=freq,
-            marker=dict(color="green")
-        )]
+        data=[go.Bar(x=labels, y=freq, marker=dict(color="green"))]
     )
     fig.update_layout(
         title="Marks Frequency Distribution (60–300, Bin = 10)",
         xaxis_title="Marks Range",
         yaxis_title="Number of Candidates",
         title_x=0.5,
-        dragmode=False  # ❌ disable drag interactions
+        dragmode=False
     )
     return fig
 
@@ -117,8 +104,7 @@ def animated_pie(title, correct, wrong):
             values=[correct, wrong],
             hole=0.5,
             marker=dict(colors=["green", "red"]),
-            textinfo="label+percent",
-            hoverinfo="label+value"
+            textinfo="label+percent"
         )]
     )
     fig.update_layout(title=title, title_x=0.5)
@@ -158,25 +144,49 @@ actual_answer = {
 '4255895053':'3','4255895054':'3','4255895055':'3','4255895056':'4','4255895057':'1'
 }
 
-# ---------------- PROCESS RESULT ----------------
+# ---------------- JRF CUT-OFF DATA ----------------
+JRF_CUTOFFS = {
+    "UNRESERVED": {"2022":180,"2023":184,"2024":218,"2025":186},
+    "OBC(NCL)":   {"2022":162,"2023":174,"2024":206,"2025":172},
+    "EWS":        {"2022":166,"2023":176,"2024":202,"2025":172},
+    "SC":         {"2022":150,"2023":160,"2024":194,"2025":158},
+    "ST":         {"2022":148,"2023":164,"2024":196,"2025":160},
+}
+
+def calculate_jrf_probability(user_marks, category):
+    cutoffs = JRF_CUTOFFS[category]
+    passed = 0
+    rows = []
+    for year, cutoff in cutoffs.items():
+        ok = user_marks >= cutoff
+        rows.append({
+            "Year": year,
+            "Cut-off": cutoff,
+            "Your Marks": user_marks,
+            "Qualified": "YES" if ok else "NO"
+        })
+        if ok:
+            passed += 1
+    return (passed / len(cutoffs)) * 100, pd.DataFrame(rows)
+
+# ---------------- PROCESS URL ----------------
 def process_url(url):
     r = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
     soup = get_best_soup(r.content)
 
-    application = candidate_name = roll_no = "N/A"
-
+    # Candidate info
+    application = name = roll = "N/A"
     for row in soup.find_all("tr"):
         cols = row.find_all("td")
         if len(cols) >= 2:
             k = cols[0].get_text(strip=True).lower()
             v = cols[1].get_text(strip=True)
             if "application" in k: application = v
-            elif "candidate name" in k: candidate_name = v
-            elif "roll" in k: roll_no = v
+            elif "candidate name" in k: name = v
+            elif "roll" in k: roll = v
 
     bold = soup.find_all("td", class_="bold")
     q, a, qf, af = [], [], 0, 0
-
     for td in bold:
         t = td.get_text(strip=True)
         if qf: q.append(t); qf = 0
@@ -185,25 +195,15 @@ def process_url(url):
         if t == "Answered": af = 1
 
     p1c = p2c = 0
-    rows = []
-
     for i, qid in enumerate(q):
-        correct = a[i] == actual_answer.get(qid)
-        paper = "Paper 1" if i < PAPER1_COUNT else "Paper 2"
-        if correct:
-            p1c += paper == "Paper 1"
-            p2c += paper == "Paper 2"
+        if a[i] == actual_answer.get(qid):
+            if i < PAPER1_COUNT:
+                p1c += 1
+            else:
+                p2c += 1
 
-        rows.append({
-            "Question ID": qid,
-            "Given": a[i],
-            "Actual": actual_answer.get(qid),
-            "Correct": correct,
-            "Paper": paper
-        })
-
-    p1m, p2m = p1c * 2, p2c * 2
-    return application, candidate_name, roll_no, p1c, p2c, p1m + p2m, pd.DataFrame(rows), p1m, p2m
+    total = (p1c + p2c) * 2
+    return application, name, roll, p1c, p2c, total
 
 # ---------------- UI ----------------
 col1, col2 = st.columns([4, 1])
@@ -212,36 +212,35 @@ with col1:
 with col2:
     st.markdown(
         "<p style='font-size:12px; text-align:right; margin-top:35px;'>"
-        "Idea by <b>Himalaya Raj</b><br>Credit goes to <b>ChatGPT</b></p>",
+        "Idea by <b>Himalaya Raj</b><br>"
+        "Credit goes to <b>ChatGPT</b></p>",
         unsafe_allow_html=True
     )
 
 stats = get_marks_statistics()
 if stats:
-    st.markdown(f"""
-    <div style="display:flex;justify-content:space-around;text-align:center">
-    <div>🏆<br><b>Highest</b><br>{stats['highest']}</div>
-    <div>📊<br><b>Average</b><br>{stats['average']}</div>
-    <div>📌<br><b>Median</b><br>{stats['median']}</div>
-    <div>📉<br><b>Lowest</b><br>{stats['lowest']}</div>
-    </div><hr>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"🏆 **Highest:** {stats['highest']} | "
+        f"📊 **Average:** {stats['average']} | "
+        f"📌 **Median:** {stats['median']} | "
+        f"📉 **Lowest:** {stats['lowest']}"
+    )
 
+st.markdown("## 🎯 JRF Qualification Predictor")
+category = st.selectbox("Select Category", list(JRF_CUTOFFS.keys()))
 url = st.text_input("Enter Result URL")
 
 if st.button("Get Marks"):
-    app, name, roll, p1c, p2c, total, df, p1m, p2m = process_url(url)
+    app, name, roll, p1c, p2c, total = process_url(url)
+
+    p1m = p1c * 2
+    p2m = p2c * 2
 
     st.markdown(f"""
-    <h3 style='text-align:center'>😊 Result Summary 😊</h3>
-    <p style='text-align:center'>
-    <b>Name:</b> {name}<br>
-    <b>Roll:</b> {roll}<br>
-    <b>Application:</b> {app}<br>
-    <b>Total Marks:</b> {total}<br>
-    <b>Paper 1:</b> {p1m} | <b>Paper 2:</b> {p2m}
-    </p><hr>
-    """, unsafe_allow_html=True)
+    ### 📘 Paper 1 Marks: **{p1m} / 100**
+    ### 📕 Paper 2 Marks: **{p2m} / 200**
+    ## 🎯 Total Marks: **{total} / 300**
+    """)
 
     c1, c2, c3 = st.columns(3)
     c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT - p1c))
@@ -250,25 +249,14 @@ if st.button("Get Marks"):
 
     save_to_firebase(url, name, roll, app, total)
 
-    st.download_button(
-        "⬇️ Download CSV",
-        df.to_csv(index=False).encode("utf-8"),
-        "ugc_net_result.csv",
-        "text/csv"
-    )
+    prob, year_df = calculate_jrf_probability(total, category)
+    st.dataframe(year_df, use_container_width=True)
+    st.metric("🎓 Chance to Qualify JRF", f"{prob:.0f}%")
 
-# ---------------- FREQUENCY DISTRIBUTION (BOTTOM, NO ZOOM) ----------------
 st.markdown("### 📊 Overall Marks Frequency Distribution")
-
-marks = get_all_marks()
-labels, freq = marks_frequency_distribution(marks, 60, 300)
-
+labels, freq = marks_frequency_distribution(get_all_marks())
 st.plotly_chart(
     plot_frequency_graph(labels, freq),
     use_container_width=True,
-    config={
-        "scrollZoom": False,
-        "doubleClick": False,
-        "displayModeBar": False
-    }
+    config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
 )
