@@ -17,6 +17,8 @@ if not firebase_admin._apps:
 # ---------------- CONFIG ----------------
 PAPER1_COUNT = 50
 PAPER2_COUNT = 100
+TOTAL_QUESTIONS = 150
+MAX_MARKS = 300
 
 # ---------------- HELPERS ----------------
 def get_best_soup(content):
@@ -30,15 +32,14 @@ def get_best_soup(content):
 def encode_url(url):
     return base64.urlsafe_b64encode(url.encode()).decode()
 
+# ---------------- SAVE TO FIREBASE ----------------
 def save_to_firebase(url, name, roll, application, total_marks):
-    # ❌ Do not save very low / invalid marks
     if total_marks <= 2:
         return False
 
     key = encode_url(url)
     ref = db.reference(f"results/{key}")
 
-    # ❌ Do not overwrite existing record
     if ref.get() is not None:
         return False
 
@@ -50,7 +51,6 @@ def save_to_firebase(url, name, roll, application, total_marks):
         "url": url
     })
     return True
-
 
 # ---------------- STATISTICS ----------------
 def get_marks_statistics():
@@ -71,13 +71,58 @@ def get_marks_statistics():
         "median": float(s.median())
     }
 
+def get_all_marks():
+    ref = db.reference("results")
+    data = ref.get()
+    if not data:
+        return []
+    return [v["total_marks"] for v in data.values() if "total_marks" in v]
+
+# ---------------- FREQUENCY DISTRIBUTION ----------------
+def marks_frequency_distribution(marks, start=60, end=300, bin_size=10):
+    if not marks:
+        return None
+
+    bins = list(range(start, end + bin_size, bin_size))
+    labels = [f"{b}-{b+bin_size-1}" for b in bins[:-1]]
+    freq = [0] * len(labels)
+
+    for m in marks:
+        if start <= m <= end:
+            idx = (m - start) // bin_size
+            if idx < len(freq):
+                freq[idx] += 1
+
+    return labels, freq
+
+def plot_frequency_graph(labels, freq):
+    fig = go.Figure(
+        data=[go.Bar(
+            x=labels,
+            y=freq,
+            marker=dict(color="green")
+        )]
+    )
+    fig.update_layout(
+        title="Marks Frequency Distribution (60–300, Bin Size = 10)",
+        xaxis_title="Marks Range",
+        yaxis_title="Number of Candidates",
+        title_x=0.5
+    )
+    return fig
+
 # ---------------- PIE CHART ----------------
 def animated_pie(title, correct, wrong):
-    fig = go.Figure(data=[go.Pie(
-        labels=["Correct", "Wrong"],
-        values=[correct, wrong],
-        hole=0.5
-    )])
+    fig = go.Figure(
+        data=[go.Pie(
+            labels=["Correct", "Wrong"],
+            values=[correct, wrong],
+            hole=0.5,
+            marker=dict(colors=["green", "red"]),
+            textinfo="label+percent",
+            hoverinfo="label+value"
+        )]
+    )
     fig.update_layout(title=title, title_x=0.5)
     return fig
 
@@ -114,19 +159,6 @@ actual_answer = {
 '4255895047':'4','4255895048':'4','4255895049':'1','4255895050':'1','4255895051':'3',
 '4255895053':'3','4255895054':'3','4255895055':'3','4255895056':'4','4255895057':'1'
 }
-def animated_pie(title, correct, wrong):
-    fig = go.Figure(
-        data=[go.Pie(
-            labels=["Correct", "Wrong"],
-            values=[correct, wrong],
-            hole=0.5,
-            marker=dict(colors=["green", "red"]),
-            textinfo="label+percent",
-            hoverinfo="label+value"
-        )]
-    )
-    fig.update_layout(title=title, title_x=0.5)
-    return fig
 
 # ---------------- PROCESS RESULT ----------------
 def process_url(url):
@@ -140,17 +172,22 @@ def process_url(url):
         if len(cols) >= 2:
             k = cols[0].get_text(strip=True).lower()
             v = cols[1].get_text(strip=True)
-            if "application" in k: application = v
-            elif "candidate name" in k: candidate_name = v
-            elif "roll" in k: roll_no = v
+            if "application" in k:
+                application = v
+            elif "candidate name" in k:
+                candidate_name = v
+            elif "roll" in k:
+                roll_no = v
 
     bold = soup.find_all("td", class_="bold")
     q, a, qf, af = [], [], 0, 0
 
     for td in bold:
         t = td.get_text(strip=True)
-        if qf: q.append(t); qf = 0
-        if af: a.append(t); af = 0
+        if qf:
+            q.append(t); qf = 0
+        if af:
+            a.append(t); af = 0
         if t == "MCQ": qf = 1
         if t == "Answered": af = 1
 
@@ -172,26 +209,25 @@ def process_url(url):
             "Paper": paper
         })
 
-    p1m, p2m = p1c*2, p2c*2
-    return application, candidate_name, roll_no, p1c, p2c, p1m+p2m, pd.DataFrame(rows), p1m, p2m
+    p1m, p2m = p1c * 2, p2c * 2
+    return application, candidate_name, roll_no, p1c, p2c, p1m + p2m, pd.DataFrame(rows), p1m, p2m
 
 # ---------------- UI ----------------
 col1, col2 = st.columns([4, 1])
-
 with col1:
-    st.title("🎓UGC  Marks check ")
-
+    st.title("🎓 UGC NET Marks Analyzer")
 with col2:
     st.markdown(
-        "<p style='font-size:18px; text-align:right; margin-top:35px;'>"
-        "Idea by <b>Himalaya raj ( credit goes to chat gpt) </b></p>",
+        "<p style='font-size:12px; text-align:right; margin-top:35px;'>"
+        "Idea by <b>Himalaya Raj</b><br>"
+        "Credit goes to <b>ChatGPT</b></p>",
         unsafe_allow_html=True
     )
 
 stats = get_marks_statistics()
 if stats:
     st.markdown(f"""
-    <div style="display:flex;justify-content:space-around;padding:15px;border-radius:10px;text-align:center">
+    <div style="display:flex;justify-content:space-around;text-align:center">
     <div>🏆<br><b>Highest</b><br>{stats['highest']}</div>
     <div>📊<br><b>Average</b><br>{stats['average']}</div>
     <div>📌<br><b>Median</b><br>{stats['median']}</div>
@@ -205,7 +241,7 @@ if st.button("Get Marks"):
     app, name, roll, p1c, p2c, total, df, p1m, p2m = process_url(url)
 
     st.markdown(f"""
-    <h3 style='text-align:center'>😊 Result Summary 😊 </h3>
+    <h3 style='text-align:center'>😊 Result Summary 😊</h3>
     <p style='text-align:center'>
     <b>Name:</b> {name}<br>
     <b>Roll:</b> {roll}<br>
@@ -215,18 +251,28 @@ if st.button("Get Marks"):
     </p><hr>
     """, unsafe_allow_html=True)
 
-    c1,c2,c3 = st.columns(3)
-    #c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT-p1c))
-    #c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT-p2c))
-    #c3.plotly_chart(animated_pie("Overall", p1c+p2c, 150-(p1c+p2c)))
-    c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT-p1c))
-    c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT-p2c))
-    c3.plotly_chart(animated_pie("Overall", p1c+p2c, 150-(p1c+p2c)))
-
+    c1, c2, c3 = st.columns(3)
+    c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT - p1c))
+    c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT - p2c))
+    c3.plotly_chart(animated_pie("Overall", p1c + p2c, TOTAL_QUESTIONS - (p1c + p2c)))
 
     save_to_firebase(url, name, roll, app, total)
-    st.success("😊 Thank u for using : Himalaya raj 😊 ")
 
-    st.download_button("⬇️ Download CSV",
+    st.download_button(
+        "⬇️ Download CSV",
         df.to_csv(index=False).encode("utf-8"),
-        "ugc_net_result.csv","text/csv")
+        "ugc_net_result.csv",
+        "text/csv"
+    )
+
+# ---------------- FREQUENCY DISTRIBUTION (BOTTOM) ----------------
+st.markdown("### 📊 Overall Marks Frequency Distribution")
+
+marks = get_all_marks()
+dist = marks_frequency_distribution(marks, start=60, end=300)
+
+if dist:
+    labels, freq = dist
+    st.plotly_chart(plot_frequency_graph(labels, freq), use_container_width=True)
+else:
+    st.info("ℹ️ Not enough data to display distribution graph")
