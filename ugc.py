@@ -15,7 +15,7 @@ from firebase_admin import credentials, db
 # Firebase config (your values)
 # --------------------------
 SERVICE_ACCOUNT_PATH = "ugc-net-marks-f2f20-firebase-adminsdk-fbsvc-cadfc44bd2.json"   # your service account JSON
-DATABASE_URL = "https://bloodbanknew-e4e64-default-rtdb.firebaseio.com/"  # your DB URL
+DATABASE_URL = "https://ugc-net-marks-f2f20-default-rtdb.firebaseio.com/"  # your DB URL
 
 # ---------------- CONFIG ----------------
 PAPER1_COUNT = 50
@@ -191,5 +191,6 @@ if st.button("Get Marks"):
             "ugc_net_result.csv",
             "text/csv"
         )
+
 
 
