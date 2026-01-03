@@ -1,0 +1,8 @@
+streamlit
+beautifulsoup4
+requests
+pandas
+plotly
+firebase-admin
+html5lib
+lxml
