@@ -80,9 +80,6 @@ def get_all_marks():
 
 # ---------------- FREQUENCY DISTRIBUTION ----------------
 def marks_frequency_distribution(marks, start=60, end=300, bin_size=10):
-    if not marks:
-        return None
-
     bins = list(range(start, end + bin_size, bin_size))
     labels = [f"{b}-{b+bin_size-1}" for b in bins[:-1]]
     freq = [0] * len(labels)
@@ -104,10 +101,11 @@ def plot_frequency_graph(labels, freq):
         )]
     )
     fig.update_layout(
-        title="Marks Frequency Distribution (60–300, Bin Size = 10)",
+        title="Marks Frequency Distribution (60–300, Bin = 10)",
         xaxis_title="Marks Range",
         yaxis_title="Number of Candidates",
-        title_x=0.5
+        title_x=0.5,
+        dragmode=False  # ❌ disable drag interactions
     )
     return fig
 
@@ -172,22 +170,17 @@ def process_url(url):
         if len(cols) >= 2:
             k = cols[0].get_text(strip=True).lower()
             v = cols[1].get_text(strip=True)
-            if "application" in k:
-                application = v
-            elif "candidate name" in k:
-                candidate_name = v
-            elif "roll" in k:
-                roll_no = v
+            if "application" in k: application = v
+            elif "candidate name" in k: candidate_name = v
+            elif "roll" in k: roll_no = v
 
     bold = soup.find_all("td", class_="bold")
     q, a, qf, af = [], [], 0, 0
 
     for td in bold:
         t = td.get_text(strip=True)
-        if qf:
-            q.append(t); qf = 0
-        if af:
-            a.append(t); af = 0
+        if qf: q.append(t); qf = 0
+        if af: a.append(t); af = 0
         if t == "MCQ": qf = 1
         if t == "Answered": af = 1
 
@@ -219,8 +212,7 @@ with col1:
 with col2:
     st.markdown(
         "<p style='font-size:12px; text-align:right; margin-top:35px;'>"
-        "Idea by <b>Himalaya Raj</b><br>"
-        "Credit goes to <b>ChatGPT</b></p>",
+        "Idea by <b>Himalaya Raj</b><br>Credit goes to <b>ChatGPT</b></p>",
         unsafe_allow_html=True
     )
 
@@ -265,14 +257,18 @@ if st.button("Get Marks"):
         "text/csv"
     )
 
-# ---------------- FREQUENCY DISTRIBUTION (BOTTOM) ----------------
+# ---------------- FREQUENCY DISTRIBUTION (BOTTOM, NO ZOOM) ----------------
 st.markdown("### 📊 Overall Marks Frequency Distribution")
 
 marks = get_all_marks()
-dist = marks_frequency_distribution(marks, start=60, end=300)
+labels, freq = marks_frequency_distribution(marks, 60, 300)
 
-if dist:
-    labels, freq = dist
-    st.plotly_chart(plot_frequency_graph(labels, freq), use_container_width=True)
-else:
-    st.info("ℹ️ Not enough data to display distribution graph")
+st.plotly_chart(
+    plot_frequency_graph(labels, freq),
+    use_container_width=True,
+    config={
+        "scrollZoom": False,
+        "doubleClick": False,
+        "displayModeBar": False
+    }
+)
