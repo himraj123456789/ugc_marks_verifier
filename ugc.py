@@ -31,10 +31,17 @@ def encode_url(url):
     return base64.urlsafe_b64encode(url.encode()).decode()
 
 def save_to_firebase(url, name, roll, application, total_marks):
+    # ❌ Do not save very low / invalid marks
+    if total_marks <= 2:
+        return False
+
     key = encode_url(url)
     ref = db.reference(f"results/{key}")
+
+    # ❌ Do not overwrite existing record
     if ref.get() is not None:
         return False
+
     ref.set({
         "candidate_name": name,
         "roll_no": roll,
@@ -43,6 +50,7 @@ def save_to_firebase(url, name, roll, application, total_marks):
         "url": url
     })
     return True
+
 
 # ---------------- STATISTICS ----------------
 def get_marks_statistics():
@@ -222,4 +230,3 @@ if st.button("Get Marks"):
     st.download_button("⬇️ Download CSV",
         df.to_csv(index=False).encode("utf-8"),
         "ugc_net_result.csv","text/csv")
-
