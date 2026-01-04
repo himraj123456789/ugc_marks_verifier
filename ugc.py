@@ -192,24 +192,43 @@ def process_url(url):
             elif "roll" in k: roll = v
 
     bold = soup.find_all("td", class_="bold")
-    q, a, qf, af = [], [], 0, 0
+    qids, answers = [], []
+    qf = af = 0
+
     for td in bold:
         t = td.get_text(strip=True)
-        if qf: q.append(t); qf = 0
-        if af: a.append(t); af = 0
+        if qf: qids.append(t); qf = 0
+        if af: answers.append(t); af = 0
         if t == "MCQ": qf = 1
         if t == "Answered": af = 1
 
+    rows = []
     p1c = p2c = 0
-    for i, qid in enumerate(q):
-        if a[i] == actual_answer.get(qid):
-            if i < PAPER1_COUNT:
+
+    for i, qid in enumerate(qids):
+        chosen = answers[i]
+        correct = actual_answer.get(qid)
+        is_correct = chosen == correct
+        paper = "Paper 1" if i < PAPER1_COUNT else "Paper 2"
+
+        if is_correct:
+            if paper == "Paper 1":
                 p1c += 1
             else:
                 p2c += 1
 
+        rows.append({
+            "Question ID": qid,
+            "Chosen Answer": chosen,
+            "Correct Answer": correct,
+            "Is Correct": is_correct,
+            "Paper": paper
+        })
+
+    df = pd.DataFrame(rows)
     total = (p1c + p2c) * 2
-    return application, name, roll, p1c, p2c, total
+
+    return application, name, roll, p1c, p2c, total, df
 
 # ---------------- UI ----------------
 col1, col2 = st.columns([4,1])
@@ -236,7 +255,7 @@ category = st.selectbox("Select Category", list(JRF_CUTOFFS.keys()))
 url = st.text_input("Enter Result URL")
 
 if st.button("Get Marks"):
-    app, name, roll, p1c, p2c, total = process_url(url)
+    app, name, roll, p1c, p2c, total ,df = process_url(url)
 
     p1m, p2m = p1c*2, p2c*2
     st.markdown(f"""
@@ -267,6 +286,13 @@ if st.button("Get Marks"):
     net_prob, net_df = calculate_probability(total, NET_CUTOFFS[category])
     st.dataframe(net_df, use_container_width=True)
     st.metric("Chance to Qualify NET", f"{net_prob:.0f}%")
+    # CSV download
+    st.download_button(
+        "⬇️ Download Question-wise Analysis (CSV)",
+        df.to_csv(index=False).encode("utf-8"),
+        "ugc_net_question_analysis.csv",
+        "text/csv"
+    )
 
 st.markdown("### 📊 Overall Marks Frequency Distribution")
 labels, freq = marks_frequency_distribution(get_all_marks())
@@ -275,4 +301,5 @@ st.plotly_chart(
     use_container_width=True,
     config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
 )
+
 
