@@ -239,7 +239,12 @@ if st.button("Get Marks"):
     app, name, roll, p1c, p2c, total = process_url(url)
 
     p1m, p2m = p1c*2, p2c*2
-
+    st.markdown(f"""
+    ### 👤 Candidate Details  
+    **Name:** {name}  
+    **Application No:** {app}  
+    **Roll No:** {roll}
+    """)
     st.markdown(f"""
     ### 📘 Paper 1 Marks: **{p1m} / 100**
     ### 📕 Paper 2 Marks: **{p2m} / 200**
@@ -270,3 +275,4 @@ st.plotly_chart(
     use_container_width=True,
     config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
 )
+
