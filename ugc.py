@@ -144,7 +144,7 @@ actual_answer = {
 '4255895053':'3','4255895054':'3','4255895055':'3','4255895056':'4','4255895057':'1'
 }
 
-# ---------------- JRF CUT-OFF DATA ----------------
+# ---------------- JRF & NET CUT-OFF DATA ----------------
 JRF_CUTOFFS = {
     "UNRESERVED": {"2022":180,"2023":184,"2024":218,"2025":186},
     "OBC(NCL)":   {"2022":162,"2023":174,"2024":206,"2025":172},
@@ -153,8 +153,15 @@ JRF_CUTOFFS = {
     "ST":         {"2022":148,"2023":164,"2024":196,"2025":160},
 }
 
-def calculate_jrf_probability(user_marks, category):
-    cutoffs = JRF_CUTOFFS[category]
+NET_CUTOFFS = {
+    "UNRESERVED": {"2022":162,"2023":160,"2024":188,"2025":158},
+    "OBC(NCL)":   {"2022":146,"2023":144,"2024":174,"2025":142},
+    "EWS":        {"2022":142,"2023":146,"2024":172,"2025":144},
+    "SC":         {"2022":136,"2023":138,"2024":164,"2025":136},
+    "ST":         {"2022":132,"2023":138,"2024":164,"2025":136},
+}
+
+def calculate_probability(user_marks, cutoffs):
     passed = 0
     rows = []
     for year, cutoff in cutoffs.items():
@@ -174,7 +181,6 @@ def process_url(url):
     r = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
     soup = get_best_soup(r.content)
 
-    # Candidate info
     application = name = roll = "N/A"
     for row in soup.find_all("tr"):
         cols = row.find_all("td")
@@ -206,12 +212,12 @@ def process_url(url):
     return application, name, roll, p1c, p2c, total
 
 # ---------------- UI ----------------
-col1, col2 = st.columns([4, 1])
+col1, col2 = st.columns([4,1])
 with col1:
     st.title("🎓 UGC NET Marks Analyzer")
 with col2:
     st.markdown(
-        "<p style='font-size:12px; text-align:right; margin-top:35px;'>"
+        "<p style='font-size:12px;text-align:right;margin-top:35px;'>"
         "Idea by <b>Himalaya Raj</b><br>"
         "Credit goes to <b>ChatGPT</b></p>",
         unsafe_allow_html=True
@@ -220,21 +226,19 @@ with col2:
 stats = get_marks_statistics()
 if stats:
     st.markdown(
-        f"🏆 **Highest:** {stats['highest']} | "
-        f"📊 **Average:** {stats['average']} | "
-        f"📌 **Median:** {stats['median']} | "
-        f"📉 **Lowest:** {stats['lowest']}"
+        f"🏆 Highest: {stats['highest']} | "
+        f"📊 Average: {stats['average']} | "
+        f"📌 Median: {stats['median']} | "
+        f"📉 Lowest: {stats['lowest']}"
     )
 
-st.markdown("## 🎯 JRF Qualification Predictor")
 category = st.selectbox("Select Category", list(JRF_CUTOFFS.keys()))
 url = st.text_input("Enter Result URL")
 
 if st.button("Get Marks"):
     app, name, roll, p1c, p2c, total = process_url(url)
 
-    p1m = p1c * 2
-    p2m = p2c * 2
+    p1m, p2m = p1c*2, p2c*2
 
     st.markdown(f"""
     ### 📘 Paper 1 Marks: **{p1m} / 100**
@@ -242,16 +246,22 @@ if st.button("Get Marks"):
     ## 🎯 Total Marks: **{total} / 300**
     """)
 
-    c1, c2, c3 = st.columns(3)
-    c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT - p1c))
-    c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT - p2c))
-    c3.plotly_chart(animated_pie("Overall", p1c + p2c, TOTAL_QUESTIONS - (p1c + p2c)))
+    c1,c2,c3 = st.columns(3)
+    c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT-p1c))
+    c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT-p2c))
+    c3.plotly_chart(animated_pie("Overall", p1c+p2c, TOTAL_QUESTIONS-(p1c+p2c)))
 
     save_to_firebase(url, name, roll, app, total)
 
-    prob, year_df = calculate_jrf_probability(total, category)
-    st.dataframe(year_df, use_container_width=True)
-    st.metric("🎓 Chance to Qualify JRF", f"{prob:.0f}%")
+    st.markdown("## 🎓 JRF Prediction")
+    jrf_prob, jrf_df = calculate_probability(total, JRF_CUTOFFS[category])
+    st.dataframe(jrf_df, use_container_width=True)
+    st.metric("Chance to Qualify JRF", f"{jrf_prob:.0f}%")
+
+    st.markdown("## 📘 NET Prediction")
+    net_prob, net_df = calculate_probability(total, NET_CUTOFFS[category])
+    st.dataframe(net_df, use_container_width=True)
+    st.metric("Chance to Qualify NET", f"{net_prob:.0f}%")
 
 st.markdown("### 📊 Overall Marks Frequency Distribution")
 labels, freq = marks_frequency_distribution(get_all_marks())
