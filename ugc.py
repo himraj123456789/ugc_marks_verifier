@@ -19,6 +19,25 @@ PAPER1_COUNT = 50
 PAPER2_COUNT = 100
 TOTAL_QUESTIONS = 150
 MAX_MARKS = 300
+# ---------------- FUNCTION ----------------
+def apply_true_false_color(df, column_name):
+    
+    """
+    Apply green color for TRUE and red color for FALSE
+    """
+    
+    df[column_name] = df[column_name].astype(str)
+
+    def color_true_false(val):
+        if val.upper() == "TRUE":
+            return "color: white; background-color: green; font-weight: bold;"
+        elif val.upper() == "FALSE":
+            return "color: white; background-color: red; font-weight: bold;"
+        return ""
+
+    return df.style.applymap(color_true_false, subset=[column_name])
+
+
 
 # ---------------- HELPERS ----------------
 def get_best_soup(content):
@@ -287,19 +306,28 @@ if st.button("Get Marks"):
     st.dataframe(net_df, use_container_width=True)
     st.metric("Chance to Qualify NET", f"{net_prob:.0f}%")
     # CSV download
+    
+
+    st.markdown("### 📊 Overall Marks Frequency Distribution")
+    labels, freq = marks_frequency_distribution(get_all_marks())
+    st.plotly_chart(
+        plot_frequency_graph(labels, freq),
+        use_container_width=True,
+        config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
+    )
+    print(df)
+    styled_df = apply_true_false_color(df, "Is Correct")
+        # Display table
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        height=500
+    )
     st.download_button(
         "⬇️ Download Question-wise Analysis (CSV)",
         df.to_csv(index=False).encode("utf-8"),
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
-
-st.markdown("### 📊 Overall Marks Frequency Distribution")
-labels, freq = marks_frequency_distribution(get_all_marks())
-st.plotly_chart(
-    plot_frequency_graph(labels, freq),
-    use_container_width=True,
-    config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
-)
 
 
