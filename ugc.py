@@ -321,7 +321,7 @@ if st.button("Get Marks"):
     st.dataframe(
         styled_df,
         use_container_width=True,
-        height=200
+        height=700
     )
     st.download_button(
         "⬇️ Download Question-wise Analysis (CSV)",
@@ -329,6 +329,7 @@ if st.button("Get Marks"):
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
+
 
 
 
