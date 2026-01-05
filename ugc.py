@@ -340,7 +340,7 @@ if st.button("Get Marks"):
     styled_df,
     use_container_width=True,
     column_config={
-        "Question ID": st.column_config.NumberColumn(width="medium"),
+        "Question ID": st.column_config.NumberColumn(width="small"),
         "Chosen Answer": st.column_config.NumberColumn(width="small"),
         "Correct Answer": st.column_config.NumberColumn(width="small"),
         "Paper": st.column_config.TextColumn(width="small"),
@@ -352,5 +352,6 @@ if st.button("Get Marks"):
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
+
 
 
