@@ -321,6 +321,9 @@ if st.button("Get Marks"):
     st.metric("Chance to Qualify NET", f"{net_prob:.0f}%")
     # CSV download
     
+    st.write("")
+    st.write("")
+    st.write("")
 
     st.markdown("### 📊 Overall Marks Frequency Distribution")
     labels, freq = marks_frequency_distribution(get_all_marks())
@@ -329,7 +332,11 @@ if st.button("Get Marks"):
         use_container_width=True,
         config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
     )
-    print(df)
+    st.write("")
+    st.write("")
+    st.write("")
+
+    #print(df)
     df = df.drop(columns=["Is Correct"], errors="ignore")
     styled_df = apply_chosen_answer_cell_color(df)
     #print(styled_df.columns)
@@ -340,7 +347,7 @@ if st.button("Get Marks"):
     styled_df,
     use_container_width=True,
     column_config={
-        "Question ID": st.column_config.NumberColumn(width="small"),
+        "Question ID": st.column_config.NumberColumn(width="medium"),
         "Chosen Answer": st.column_config.NumberColumn(width="small"),
         "Correct Answer": st.column_config.NumberColumn(width="small"),
         "Paper": st.column_config.TextColumn(width="small"),
@@ -352,6 +359,5 @@ if st.button("Get Marks"):
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
-
 
 
