@@ -20,22 +20,36 @@ PAPER2_COUNT = 100
 TOTAL_QUESTIONS = 150
 MAX_MARKS = 300
 # ---------------- FUNCTION ----------------
-def apply_true_false_color(df, column_name):
-    
+def apply_chosen_answer_cell_color(df):
     """
-    Apply green color for TRUE and red color for FALSE
+    Color the ENTIRE Chosen Answer cell:
+    - GREEN if Chosen Answer == Correct Answer
+    - RED otherwise
     """
-    
-    df[column_name] = df[column_name].astype(str)
 
-    def color_true_false(val):
-        if val.upper() == "TRUE":
-            return "color: white; background-color: green; font-weight: bold;"
-        elif val.upper() == "FALSE":
-            return "color: white; background-color: red; font-weight: bold;"
-        return ""
+    df["Chosen Answer"] = df["Chosen Answer"].astype(str)
+    df["Correct Answer"] = df["Correct Answer"].astype(str)
 
-    return df.style.applymap(color_true_false, subset=[column_name])
+    def color_cell(row):
+        styles = [""] * len(row)
+
+        idx = row.index.get_loc("Chosen Answer")
+
+        if row["Chosen Answer"] == row["Correct Answer"]:
+            styles[idx] = (
+                "background-color: #2ecc71; color: white; font-weight: bold;"
+            )
+        else:
+            styles[idx] = (
+                "background-color: #e74c3c; color: white; font-weight: bold;"
+            )
+
+        return styles
+
+    return df.style.apply(color_cell, axis=1)
+
+
+
 
 
 
@@ -316,12 +330,20 @@ if st.button("Get Marks"):
         config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
     )
     print(df)
-    styled_df = apply_true_false_color(df, "Is Correct")
+    styled_df = apply_chosen_answer_cell_color(df)
+    #print(styled_df.columns)
+    #styled_df = styled_df.drop(columns=["Is Correct"], errors="ignore")
+    #styled_df = styled_df.drop(columns=["Is Correct"], errors="ignore")
         # Display table
     st.dataframe(
-        styled_df,
-        use_container_width=True,
-        height=700
+    styled_df,
+    use_container_width=True,
+    column_config={
+        "Question ID": st.column_config.NumberColumn(width="small"),
+        "Chosen Answer": st.column_config.NumberColumn(width="small"),
+        "Correct Answer": st.column_config.NumberColumn(width="small"),
+        "Paper": st.column_config.TextColumn(width="small"),
+    },
     )
     st.download_button(
         "⬇️ Download Question-wise Analysis (CSV)",
@@ -329,7 +351,5 @@ if st.button("Get Marks"):
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
-
-
 
 
