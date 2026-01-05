@@ -330,6 +330,7 @@ if st.button("Get Marks"):
         config={"scrollZoom": False, "doubleClick": False, "displayModeBar": False}
     )
     print(df)
+    df = df.drop(columns=["Is Correct"], errors="ignore")
     styled_df = apply_chosen_answer_cell_color(df)
     #print(styled_df.columns)
     #styled_df = styled_df.drop(columns=["Is Correct"], errors="ignore")
@@ -339,7 +340,7 @@ if st.button("Get Marks"):
     styled_df,
     use_container_width=True,
     column_config={
-        "Question ID": st.column_config.NumberColumn(width="small"),
+        "Question ID": st.column_config.NumberColumn(width="medium"),
         "Chosen Answer": st.column_config.NumberColumn(width="small"),
         "Correct Answer": st.column_config.NumberColumn(width="small"),
         "Paper": st.column_config.TextColumn(width="small"),
