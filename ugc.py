@@ -237,7 +237,7 @@ def process_url(url):
         if qf: qids.append(t); qf = 0
         if af: answers.append(t); af = 0
         if t == "MCQ": qf = 1
-        if t == "Answered": af = 1
+        if t == "Answered" or t== "Marked For Review": af = 1
 
     rows = []
     p1c = p2c = 0
@@ -356,5 +356,6 @@ if st.button("Get Marks"):
         "ugc_net_question_analysis.csv",
         "text/csv"
     )
+
 
 
