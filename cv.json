@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "bloodbanknew-e4e64",
+  "private_key_id": "5845a997e40291650ef3b21d655c6e5d0d1c7c30",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDaQ6ZPHpVObzBw\n0e8QwejHqFgWl8uFDhfbcoqIBYQbB2yyshyRqUbxXD3TfiJdr63BMr7REs8tf5Wx\n3AS+in3XCuN+7ELj2fZH9WkkXaWVxPpIZiPlSLbPkhQMr3GXrl+F5hTTRlxAxNlu\nQCLf4/X775FkXHkSeD0aZNYKyoKOMHM6mZ/2DautltiyfWd6FSHfab4vL5lwwvBR\ndi5IH3IFZj2A22XCByJPDYUUTP/2TH9DjfTJXzKcxuGIGTuYqMn/Tmg9z1OUB5yX\nRTZwj7O+NJn1WRy7YJxOo6C1bAd+3P/NXNMa1opeCo+fLDRZWuEGwa37Kjy8h8gI\n+g8CGB7xAgMBAAECggEAE4duyaDBB3jxpsCT8UYGXdnxUskvcbboec9Cd6f1sWTt\nTAJdhcd1hGpGUmZ0bPlHdNRFaEfUb3vdUSIQbxuNZaiw4QYC+Kfjjj32M8Wox5Et\nuz1fXBgw2jr17gojIekdXSnQZnSC091BHqkgrbN0CqAdfFM9VoKZZgOMdr/2pUHk\ndQBdUc/SE/Np+LJ3h6QxnPb3d27prHRSnxN7rV1qjR+O3bO5bZ+cM6K+wCwlxRBC\nTAQ1eymA7jhzeAliKWRR3EyYLLVtnGzOzf8IR3jfX/m+QjfhQ2PVL2Jo5dbXUshC\nQ3iEt8BlyjrD5ksugeRwaOI7xE6fKBl3k5LLDWbIWQKBgQD0FaJjRjaLGcTGbt0L\nFmXOHN/WyVlaNJZvA5Sfg7oGvZBXftEFXfYAgG+k2DlE3fFPyE1arG9WEgFbyBgS\nql50+dbLh+jmJnF1jwjONY3p+uBTbhHR9FKDjNnEWcNm92jumTWVVqepJlEXZnjn\nYg0UJfh5MSWLSbeZqzf3VBTvqQKBgQDk61XRMJnXyJ5pduYhp6ecT6gqsFDXrkAH\nBmYcjOSYkVVAlGh2f7ujHqXkV5BNtVtfJJ1QQZlE20I4hsr3nnVpIvs+ua7Q7dlr\nCADCbQrXvtEClU7mcRFxsYcNk3gpGYE3h7Yu0X+8hhTIptgDmjlI3drMhfCcyfxT\nwb6B0tViCQKBgDWE8OBXquoBMnZYJLujo5r4FdSgvajb0whwfowjdAy6UAX/VpGY\nsrIVd2Vry9Lf32OhBeUV3iu/MvEPBMhC9wcrKP/jwxuD3mjqfgHJGF7vlXR1tA6X\nReh2X+F/1SqkoSuACJHAOG8Macd5vpTtmPSMBtl7/0F1Xn6hXloq45RRAoGBALPR\niJ/CJZazKHx/wVY+dBL9H4Qo69gAMJtUE3Hp2sddojIQYd5zh9kigf1UKy5ff17F\nTC122gaUlPgCKf1Io8HqkKE9Cm1j6J2Cs9YGAbZnVZdJ4ahyuNkuMoAfjwv51N7h\n4+Hy/vv/9uOG67gotUbfvrdZnyAKKgNA9XzVOHjBAoGAVVBQYX3QvJJF+ovgzL4s\n5FxpvZbGmBfSnpXxGyZ9yLu/InZi3jZGG4UHebnXfrof1GL1cHdpqQ0a5S5n4XI5\nm8GgcZCvXTemSPBBpFKLKiOa61lLSglWhPLi/lzpdcjiBQcZfC29+rldUc6Bev36\nta2DdRhk2pEqavYdAfyfqZs=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@bloodbanknew-e4e64.iam.gserviceaccount.com",
+  "client_id": "118380686869193198079",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40bloodbanknew-e4e64.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
