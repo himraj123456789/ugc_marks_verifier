@@ -1,152 +1,12 @@
+
 import streamlit as st
-from bs4 import BeautifulSoup, FeatureNotFound
 import requests
 import pandas as pd
-import base64
-import plotly.graph_objects as go
-import firebase_admin
-from firebase_admin import credentials, db
+from bs4 import BeautifulSoup
+
+PAPER1_COUNT=50
 
 
-
-# ---------------- FIREBASE INIT ----------------
-if not firebase_admin._apps:
-    cred = credentials.Certificate("cv.json")
-    firebase_admin.initialize_app(cred, {
-        "databaseURL": "https://bloodbanknew-e4e64-default-rtdb.firebaseio.com/"
-    })
-
-# ---------------- CONFIG ----------------
-PAPER1_COUNT = 50
-PAPER2_COUNT = 100
-TOTAL_QUESTIONS = 150
-MAX_MARKS = 300
-
-# ---------------- FUNCTION ----------------
-def apply_chosen_answer_cell_color(df):
-    """
-    Color the ENTIRE Chosen Answer cell:
-    - GREEN if Chosen Answer == Correct Answer
-    - RED otherwise
-    """
-
-    df["Chosen Answer"] = df["Chosen Answer"].astype(str)
-    df["Correct Answer"] = df["Correct Answer"].astype(str)
-
-    def color_cell(row):
-        styles = [""] * len(row)
-
-        idx = row.index.get_loc("Chosen Answer")
-
-        if row["Chosen Answer"] == row["Correct Answer"]:
-            styles[idx] = (
-                "background-color: #2ecc71; color: white; font-weight: bold;"
-            )
-        else:
-            styles[idx] = (
-                "background-color: #e74c3c; color: white; font-weight: bold;"
-            )
-
-        return styles
-
-    return df.style.apply(color_cell, axis=1)
-
-
-
-
-
-
-# ---------------- HELPERS ----------------
-def get_best_soup(content):
-    for p in ['html5lib', 'lxml', 'html.parser']:
-        try:
-            return BeautifulSoup(content, p)
-        except FeatureNotFound:
-            continue
-    raise FeatureNotFound
-
-def encode_url(url):
-    return base64.urlsafe_b64encode(url.encode()).decode()
-
-# ---------------- SAVE TO FIREBASE ----------------
-def save_to_firebase(url, name, roll, application, total_marks):
-    if total_marks <= 2:
-        return False
-    key = encode_url(url)
-    ref = db.reference(f"results/{key}")
-    if ref.get() is not None:
-        return False
-    ref.set({
-        "candidate_name": name,
-        "roll_no": roll,
-        "application_no": application,
-        "total_marks": total_marks,
-        "url": url
-    })
-    return True
-
-# ---------------- STATISTICS ----------------
-def get_marks_statistics():
-    ref = db.reference("results")
-    data = ref.get()
-    if not data:
-        return None
-    marks = [v["total_marks"] for v in data.values()]
-    s = pd.Series(marks)
-    return {
-        "highest": int(s.max()),
-        "lowest": int(s.min()),
-        "average": round(s.mean(), 2),
-        "median": float(s.median())
-    }
-
-def get_all_marks():
-    ref = db.reference("results")
-    data = ref.get()
-    if not data:
-        return []
-    return [v["total_marks"] for v in data.values()]
-
-# ---------------- FREQUENCY DISTRIBUTION ----------------
-def marks_frequency_distribution(marks, start=60, end=300, bin_size=10):
-    bins = list(range(start, end + bin_size, bin_size))
-    labels = [f"{b}-{b+bin_size-1}" for b in bins[:-1]]
-    freq = [0] * len(labels)
-    for m in marks:
-        if start <= m <= end:
-            idx = (m - start) // bin_size
-            if idx < len(freq):
-                freq[idx] += 1
-    return labels, freq
-
-def plot_frequency_graph(labels, freq):
-    fig = go.Figure(
-        data=[go.Bar(x=labels, y=freq, marker=dict(color="green"))]
-    )
-    fig.update_layout(
-        title="Marks Frequency Distribution (60–300, Bin = 10)",
-        xaxis_title="Marks Range",
-        yaxis_title="Number of Candidates",
-        title_x=0.5,
-        dragmode=False
-    )
-    return fig
-
-# ---------------- PIE CHART ----------------
-def animated_pie(title, correct, wrong):
-    fig = go.Figure(
-        data=[go.Pie(
-            labels=["Correct", "Wrong"],
-            values=[correct, wrong],
-            hole=0.5,
-            marker=dict(colors=["green", "red"]),
-            textinfo="label+percent"
-        )]
-    )
-    fig.update_layout(title=title, title_x=0.5)
-    return fig
-
-# ---------------- ANSWER KEY ----------------
 actual_answer = {
     '6119872158':'1','6119872159':'1','6119872160':'2','6119872161':'3','6119872162':'4',
     '6119872163':'3','6119872164':'2','6119872165':'2','6119872166':'2','6119872167':'3',
@@ -175,187 +35,56 @@ actual_answer = {
     '6119872279':'3','6119872280':'3','6119872281':'3','6119872282':'3','6119872283':'1',
     '6119872284':'3','6119872285':'2','6119872286':'1','6119872287':'3','6119872288':'1',
     '6119872289':'4','6119872290':'3','6119872291':'2','6119872292':'4','6119872293':'3',
-    '6119872294':'4','6119872295':'1','6119872296':'1','6119872297':'4','6119872298':'4',
+    '6119872294':'4','6119872295':'1','6119872296':'1','6119872292297':'4','6119872298':'4',
     '6119872300':'3','6119872301':'3','6119872302':'2','6119872303':'3','6119872304':'2',
     '6119872306':'3','6119872307':'1','6119872308':'1','6119872309':'1','6119872310':'2'
 }
 
 
-# ---------------- JRF & NET CUT-OFF DATA ----------------
-JRF_CUTOFFS = {
-    "UNRESERVED": {"2022":180,"2023":184,"2024":218,"2025":186},
-    "OBC(NCL)":   {"2022":162,"2023":174,"2024":206,"2025":172},
-    "EWS":        {"2022":166,"2023":176,"2024":202,"2025":172},
-    "SC":         {"2022":150,"2023":160,"2024":194,"2025":158},
-    "ST":         {"2022":148,"2023":164,"2024":196,"2025":160},
-}
-
-NET_CUTOFFS = {
-    "UNRESERVED": {"2022":162,"2023":160,"2024":188,"2025":158},
-    "OBC(NCL)":   {"2022":146,"2023":144,"2024":174,"2025":142},
-    "EWS":        {"2022":142,"2023":146,"2024":172,"2025":144},
-    "SC":         {"2022":136,"2023":138,"2024":164,"2025":136},
-    "ST":         {"2022":132,"2023":138,"2024":164,"2025":136},
-}
-
-def calculate_probability(user_marks, cutoffs):
-    passed = 0
-    rows = []
-    for year, cutoff in cutoffs.items():
-        ok = user_marks >= cutoff
-        rows.append({
-            "Year": year,
-            "Cut-off": cutoff,
-            "Your Marks": user_marks,
-            "Qualified": "YES" if ok else "NO"
-        })
-        if ok:
-            passed += 1
-    return (passed / len(cutoffs)) * 100, pd.DataFrame(rows)
-
-# ---------------- PROCESS URL ----------------
 def process_url(url):
-    r = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=15)
-    soup = get_best_soup(r.content)
-
-    application = name = roll = "N/A"
+    r=requests.get(url,headers={"User-Agent":"Mozilla/5.0"},timeout=20)
+    soup=BeautifulSoup(r.content,"html.parser")
+    app=name=roll="N/A"
     for row in soup.find_all("tr"):
-        cols = row.find_all("td")
-        if len(cols) >= 2:
-            k = cols[0].get_text(strip=True).lower()
-            v = cols[1].get_text(strip=True)
-            if "application" in k: application = v
-            elif "candidate name" in k: name = v
-            elif "roll" in k: roll = v
+        tds=row.find_all("td")
+        if len(tds)>=2:
+            k=tds[0].get_text(strip=True).lower()
+            v=tds[1].get_text(strip=True)
+            if "application" in k: app=v
+            elif "candidate" in k: name=v
+            elif "roll" in k: roll=v
+    qids=[];ans=[]
+    qf=af=False
+    for td in soup.find_all("td",class_="bold"):
+        txt=td.get_text(strip=True)
+        if qf: qids.append(txt); qf=False
+        if af: ans.append(txt); af=False
+        if txt=="MCQ": qf=True
+        if txt in ["Answered","Marked For Review"]: af=True
+    rows=[];p1=p2=0
+    for i,qid in enumerate(qids):
+        chosen=ans[i]
+        correct=actual_answer.get(qid,"")
+        ok=chosen==correct
+        if i<PAPER1_COUNT:
+            if ok:p1+=1
+            paper="Paper 1"
+        else:
+            if ok:p2+=1
+            paper="Paper 2"
+        rows.append({"Question ID":qid,"Chosen Answer":chosen,"Correct Answer":correct,"Result":"✓" if ok else "✗","Paper":paper})
+    return app,name,roll,p1,p2,pd.DataFrame(rows)
 
-    bold = soup.find_all("td", class_="bold")
-    qids, answers = [], []
-    qf = af = 0
-
-    for td in bold:
-        t = td.get_text(strip=True)
-        if qf: qids.append(t); qf = 0
-        if af: answers.append(t); af = 0
-        if t == "MCQ": qf = 1
-        if t == "Answered" or t== "Marked For Review": af = 1
-
-    rows = []
-    p1c = p2c = 0
-
-    for i, qid in enumerate(qids):
-        chosen = answers[i]
-        correct = actual_answer.get(qid)
-        is_correct = chosen == correct
-        paper = "Paper 1" if i < PAPER1_COUNT else "Paper 2"
-
-        if is_correct:
-            if paper == "Paper 1":
-                p1c += 1
-            else:
-                p2c += 1
-
-        rows.append({
-            "Question ID": qid,
-            "Chosen Answer": chosen,
-            "Correct Answer": correct,
-            "Is Correct": is_correct,
-            "Paper": paper
-        })
-
-    df = pd.DataFrame(rows)
-    total = (p1c + p2c) * 2
-
-    return application, name, roll, p1c, p2c, total, df
-
-# ---------------- UI ----------------
-col1, col2 = st.columns([4,1])
-with col1:
-    st.title("🎓 UGC NET Marks Analyzer")
-with col2:
-    st.markdown(
-        "<p style='font-size:12px;text-align:right;margin-top:35px;'>"
-        "Idea by <b>Himalaya Raj</b><br>"
-        "Credit goes to <b>ChatGPT</b></p>",
-        unsafe_allow_html=True
-    )
-
-stats = get_marks_statistics()
-if stats:
-    st.markdown(
-        f"🏆 Highest: {stats['highest']} | "
-        f"📊 Average: {stats['average']} | "
-        f"📌 Median: {stats['median']} | "
-        f"📉 Lowest: {stats['lowest']}"
-    )
-
-category = st.selectbox("Select Category", list(JRF_CUTOFFS.keys()))
-url = st.text_input("Enter Result URL")
-
-if st.button("Get Marks"):
-    
-    app, name, roll, p1c, p2c, total ,df = process_url(url)
-
-    p1m, p2m = p1c*2, p2c*2
-    st.markdown(f"""
-    ### 👤 Candidate Details  
-    **Name:** {name}  
-    **Application No:** {app}  
-    **Roll No:** {roll}
-    """)
-    st.markdown(f"""
-    ### 📘 Paper 1 Marks: **{p1m} / 100**
-    ### 📕 Paper 2 Marks: **{p2m} / 200**
-    ## 🎯 Total Marks: **{total} / 300**
-    """)
-
-    c1,c2,c3 = st.columns(3)
-    c1.plotly_chart(animated_pie("Paper 1", p1c, PAPER1_COUNT-p1c))
-    c2.plotly_chart(animated_pie("Paper 2", p2c, PAPER2_COUNT-p2c))
-    c3.plotly_chart(animated_pie("Overall", p1c+p2c, TOTAL_QUESTIONS-(p1c+p2c)))
-
-    save_to_firebase(url, name, roll, app, total)
-
-    st.markdown("## 🎓 JRF Prediction")
-    jrf_prob, jrf_df = calculate_probability(total, JRF_CUTOFFS[category])
-    st.dataframe(jrf_df, use_container_width=True)
-    st.metric("Chance to Qualify JRF", f"{jrf_prob:.0f}%")
-
-    st.markdown("## 📘 NET Prediction")
-    net_prob, net_df = calculate_probability(total, NET_CUTOFFS[category])
-    st.dataframe(net_df, use_container_width=True)
-    st.metric("Chance to Qualify NET", f"{net_prob:.0f}%")
-    # CSV download
-    
-    st.write("")
-    st.write("")
-    st.write("")
-
-    
-    
-
-    #print(df)
-    df = df.drop(columns=["Is Correct"], errors="ignore")
-    styled_df = apply_chosen_answer_cell_color(df)
-    #print(styled_df.columns)
-    #styled_df = styled_df.drop(columns=["Is Correct"], errors="ignore")
-    #styled_df = styled_df.drop(columns=["Is Correct"], errors="ignore")
-        # Display table
-    st.dataframe(
-    styled_df,
-    use_container_width=True,
-    column_config={
-        "Question ID": st.column_config.NumberColumn(width="medium"),
-        "Chosen Answer": st.column_config.NumberColumn(width="small"),
-        "Correct Answer": st.column_config.NumberColumn(width="small"),
-        "Paper": st.column_config.TextColumn(width="small"),
-    },
-    )
-    st.download_button(
-        "⬇️ Download Question-wise Analysis (CSV)",
-        df.to_csv(index=False).encode("utf-8"),
-        "ugc_net_question_analysis.csv",
-        "text/csv"
-    )
-
-
-
+st.title("UGC NET Marks Calculator")
+url=st.text_input("Result URL")
+if st.button("Calculate"):
+    app,name,roll,p1,p2,df=process_url(url)
+    total=(p1+p2)*2
+    st.write(f"**Name:** {name}")
+    st.write(f"**Application:** {app}")
+    st.write(f"**Roll:** {roll}")
+    st.metric("Paper 1",f"{p1*2}/100")
+    st.metric("Paper 2",f"{p2*2}/200")
+    st.metric("Total",f"{total}/300")
+    st.dataframe(df,use_container_width=True)
+    st.download_button("Download CSV",df.to_csv(index=False).encode(),"ugc_marks.csv","text/csv")
